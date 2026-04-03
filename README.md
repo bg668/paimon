@@ -20,14 +20,12 @@ tests/              – pytest test suites (Phase 1+2 and Phase 3+4)
 ## Run tests
 
 ```bash
-cd /home/runner/work/miniagent/miniagent
 python -m pytest tests/ -v
 ```
 
 ## Run the demo
 
 ```bash
-cd /home/runner/work/miniagent/miniagent
 python demo.py
 ```
 
