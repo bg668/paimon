@@ -34,6 +34,14 @@ class EventType(str, Enum):
     TASK_COMPLETED = "task_completed"
     TASK_FAILED = "task_failed"
     DEPENDENCY_UNBLOCKED = "dependency_unblocked"
+    WORKFLOW_STARTED = "workflow_started"
+    WORKFLOW_COMPLETED = "workflow_completed"
+    WORKFLOW_FAILED = "workflow_failed"
+    REVIEW_PASSED = "review_passed"
+    REVIEW_REJECTED = "review_rejected"
+    AGENT_STARTED = "agent_started"
+    AGENT_COMPLETED = "agent_completed"
+    TOOL_FAILED = "tool_failed"
 
 
 # ---------------------------------------------------------------------------
@@ -53,6 +61,11 @@ class TaskNode(BaseModel):
     updated_at: str = Field(default_factory=_utcnow_iso)
     failure_reason: Optional[str] = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+    role: Optional[str] = None
+    retry_count: int = Field(default=0, ge=0)
+    input_refs: list[str] = Field(default_factory=list)
+    output_refs: list[str] = Field(default_factory=list)
+    parent_task_id: Optional[str] = None
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
