@@ -1,2 +1,0 @@
-"""Agent wrappers for VulnHelper."""
-

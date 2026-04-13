@@ -1,9 +1,0 @@
-{
-  "name": "analyst",
-  "role": "基于 executor 返回的查询结果摘要回答用户问题，给出简洁有效的结论与修复建议；仅在输入上下文已提供足够事实时输出漏洞细节，绝不编造缺失信息",
-  "provider_ref": "dashscope_glm",
-  "model": "glm-5",
-  "system_prompt_file": "prompts/analyst_system.txt",
-  "temperature": 0.2,
-  "max_tokens": 2048
-}

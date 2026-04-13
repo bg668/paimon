@@ -1,10 +1,22 @@
-agentsdk
-是一个底层的agent loop的sdk，python实现，可支持自定义agent loop，具体功能和使用方法请参考doc目录下的agentsdk 功能说明.md和agentsdk 开发者参考.md
+# paimonsdk
 
-agent_apps
-基于agentsdk开发的agent应用，每个应用都会拷贝一个agentsdk实例，应用之间互不干扰。
-每个应用的代码都在agent_apps目录下，每个应用的代码都在一个子目录下，子目录名就是应用的名称。
+`paimonsdk` 是一个偏底层的 Python Agent Runtime SDK，用来构建可自定义的 agent loop。
 
+仓库采用纯 SDK 结构：
 
-refs
-参考的库，是一个typescript实现的agent sdk
+- `src/paimonsdk/`：正式发布的包代码
+- `tests/`：SDK 回归测试
+- `examples/`：最小示例与示例配置
+- `scripts/`：本地 smoke 检查脚本
+- `docs/`：功能说明、开发者参考与设计文档
+- `_archive/refs/`：归档的 TypeScript 参考实现，不参与打包发布
+
+常用命令：
+
+```bash
+uv run pytest -q
+uv build
+uv run python examples/chat_demo.py
+```
+
+文档入口见 [docs/README.md](/Users/biguncle/project/uu-work/docs/README.md)。

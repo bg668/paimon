@@ -1,2 +1,0 @@
-"""VulnHelper application package."""
-

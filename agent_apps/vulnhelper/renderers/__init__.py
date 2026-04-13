@@ -1,2 +1,0 @@
-"""Markdown renderers for VulnHelper."""
-

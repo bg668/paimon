@@ -1,9 +1,0 @@
-{
-  "name": "planner",
-  "role": "分析用户输入，判断应查询的本地漏洞数据库范围；若范围、产品、版本或过滤条件存在歧义，需要通过澄清与确认把查询范围收敛到可执行的结构化计划",
-  "provider_ref": "dashscope_glm",
-  "model": "glm-5",
-  "system_prompt_file": "prompts/planner_system.txt",
-  "temperature": 0.1,
-  "max_tokens": 2048
-}
