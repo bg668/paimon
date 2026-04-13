@@ -66,7 +66,42 @@ def test_openai_adapter_create_message_maps_non_stream_response():
         assert message.usage.input == 11
         assert message.usage.output == 7
         assert client.chat.completions.calls[0]["stream"] is False
-        assert client.chat.completions.calls[0]["messages"][0]["role"] == "user"
+        assert client.chat.completions.calls[0]["messages"][0] == {"role": "system", "content": "system"}
+        assert client.chat.completions.calls[0]["messages"][1]["role"] == "user"
+
+    asyncio.run(_run())
+
+
+def test_openai_adapter_includes_system_prompt_in_messages():
+    async def _run() -> None:
+        response = SimpleNamespace(
+            id="chatcmpl_1",
+            model="gpt-4o-mini",
+            usage=SimpleNamespace(prompt_tokens=11, completion_tokens=7, total_tokens=18),
+            choices=[
+                SimpleNamespace(
+                    finish_reason="stop",
+                    message=SimpleNamespace(content="Hello from model", tool_calls=[]),
+                )
+            ],
+        )
+        client = FakeOpenAIClient(response)
+        adapter = OpenAIChatCompletionsAdapter(client)
+        model = ModelInfo(id="gpt-4o-mini", provider="openai", api="chat.completions")
+        context = AgentContext(
+            system_prompt="You are a helpful assistant.",
+            messages=[UserMessage(content=[TextContent(text="Say hello")])],
+            tools=[],
+        )
+        config = AgentLoopConfig(model=model, stream_fn=adapter.stream_message, convert_to_llm=lambda messages: list(messages))
+
+        await adapter.create_message(model, context, config)
+
+        assert client.chat.completions.calls[0]["messages"][0] == {
+            "role": "system",
+            "content": "You are a helpful assistant.",
+        }
+        assert client.chat.completions.calls[0]["messages"][1]["role"] == "user"
 
     asyncio.run(_run())
 

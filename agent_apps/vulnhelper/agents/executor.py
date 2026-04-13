@@ -21,6 +21,7 @@ from ..domain.normalization import normalize_risk_levels, normalize_vuln_id
 from ..tools.filter_cached_results import FilterCachedResultsTool
 from ..tools.query_vulns import QueryVulnsTool
 from .introspection import extract_assistant_thinking, extract_latest_assistant_text
+from .prompt_injection import build_system_prompt
 
 
 @dataclass(slots=True)
@@ -50,6 +51,12 @@ class ExecutorAgentRunner:
         if self._agent is None:
             return lambda: None
         return self._agent.subscribe(listener)
+
+    def reset(self) -> None:
+        self._last_thinking = None
+        self._last_assistant_text = None
+        if self._agent is not None:
+            self._agent.reset()
 
     async def execute_query(self, session_id: str, approved_plan: dict) -> None:
         if self._agent is None:
@@ -177,6 +184,7 @@ def build_executor_agent(
     query_tool: QueryVulnsTool,
     filter_tool: FilterCachedResultsTool,
     *,
+    role: str = "",
     temperature: float = 0.0,
     max_tokens: int | None = None,
 ) -> ExecutorAgentRunner:
@@ -214,9 +222,10 @@ def build_executor_agent(
     if stream_fn is None or model is None:
         return ExecutorAgentRunner(None, query_tool, filter_tool)
 
+    prompt_text = read_text(system_prompt_path)
     agent = Agent(
         AgentOptions(
-            system_prompt=read_text(system_prompt_path),
+            system_prompt=build_system_prompt(role, prompt_text),
             model=model,
             stream_fn=stream_fn,
             tools=[query_tool, filter_tool],

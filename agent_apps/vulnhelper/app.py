@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import sys
+import time
 from pathlib import Path
+from typing import TextIO
 from uuid import uuid4
 
 from dotenv import load_dotenv
@@ -12,13 +15,92 @@ from .config import build_default_config
 
 
 class ThinkingStreamPrinter:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        window_size: int = 96,
+        min_update_interval: float = 0.08,
+        output: TextIO | None = None,
+        time_fn=None,
+    ) -> None:
+        self._window_size = max(1, window_size)
+        self._min_update_interval = max(0.0, min_update_interval)
+        self._output = output if output is not None else sys.stdout
+        self._time_fn = time_fn or time.monotonic
         self._active_phase: str | None = None
         self._printed_any = False
+        self._phase_rendered = False
+        self._raw_buffer = ""
+        self._last_rendered_line = ""
+        self._pending_render = False
+        self._last_render_at = 0.0
 
     def reset(self) -> None:
         self._active_phase = None
         self._printed_any = False
+        self._phase_rendered = False
+        self._raw_buffer = ""
+        self._last_rendered_line = ""
+        self._pending_render = False
+        self._last_render_at = 0.0
+
+    def _write(self, text: str) -> None:
+        self._output.write(text)
+        self._output.flush()
+
+    @staticmethod
+    def _normalize_thinking_text(text: str) -> str:
+        return re.sub(r"\s+", " ", text).strip()
+
+    def _trim_raw_buffer(self) -> None:
+        raw_limit = max(self._window_size * 8, 256)
+        if len(self._raw_buffer) > raw_limit:
+            self._raw_buffer = self._raw_buffer[-raw_limit:]
+
+    def _visible_text(self) -> str:
+        normalized = self._normalize_thinking_text(self._raw_buffer)
+        if len(normalized) <= self._window_size:
+            return normalized
+        return normalized[-self._window_size :]
+
+    def _render_current_line(self, *, force: bool = False) -> None:
+        if self._active_phase is None or not self._pending_render:
+            return
+        visible = self._visible_text()
+        if not visible:
+            self._pending_render = False
+            return
+
+        line = f"[Thinking:{self._active_phase}] {visible.ljust(self._window_size)}"
+        if line == self._last_rendered_line and not force:
+            self._pending_render = False
+            return
+
+        if self._phase_rendered:
+            padding = max(0, len(self._last_rendered_line) - len(line))
+            self._write("\r" + line + (" " * padding))
+        else:
+            self._write(line)
+            self._phase_rendered = True
+            self._printed_any = True
+
+        self._last_rendered_line = line
+        self._pending_render = False
+        self._last_render_at = self._time_fn()
+
+    def _start_phase(self, phase: str) -> None:
+        if self._active_phase == phase:
+            return
+        if self._pending_render:
+            self._render_current_line(force=True)
+        if self._printed_any:
+            self._write("\n")
+        self._active_phase = phase
+        self._phase_rendered = False
+        self._raw_buffer = ""
+        self._last_rendered_line = ""
+        self._pending_render = False
+        self._last_render_at = 0.0
 
     def on_agent_event(self, phase: str, event, _cancel_token) -> None:
         if getattr(event, "type", None) != "message_update":
@@ -30,18 +112,26 @@ class ThinkingStreamPrinter:
         if not delta:
             return
 
-        if self._active_phase != phase:
-            if self._printed_any:
-                print()
-            print(f"[Thinking:{phase}] ", end="", flush=True)
-            self._active_phase = phase
-            self._printed_any = True
+        self._start_phase(phase)
+        self._raw_buffer += delta
+        self._trim_raw_buffer()
+        self._pending_render = True
 
-        print(delta, end="", flush=True)
+        if not self._phase_rendered:
+            self._render_current_line(force=True)
+            return
+
+        now = self._time_fn()
+        if now - self._last_render_at >= self._min_update_interval:
+            self._render_current_line()
 
     def finish(self) -> None:
+        if self._pending_render:
+            self._render_current_line(force=True)
         if self._printed_any:
-            print()
+            if self._phase_rendered and self._last_rendered_line:
+                self._write("\r" + (" " * len(self._last_rendered_line)) + "\r")
+            self._write("\n")
         self.reset()
 
 

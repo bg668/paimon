@@ -164,7 +164,7 @@ if __name__ == "__main__":
 - `Agent` 本身不直接连接模型，真正负责与模型通信的是 `stream_fn`，这里使用的是 `OpenAIChatCompletionsAdapter.stream_message`。
 - `prompt()` 不会直接返回一条 assistant 消息；它返回时，这一轮 run 已经完成，结果已经写入 `agent.state.messages`。
 - `wait_for_idle()` 仍然有用，但主要用于把 run 放到后台任务执行，或在 `abort()` 之后等待统一收尾。
-- `system_prompt` 会保存在 `AgentContext.system_prompt` 中；但如果直接使用仓库里的默认 OpenAI 适配器，它并不会自动映射成请求里的 system message。
+- `system_prompt` 会保存在 `AgentContext.system_prompt` 中；如果直接使用仓库里的默认 OpenAI 适配器，它会在请求消息列表最前面映射成一条 system message。
 - 即使只做最简单的调用，也建议保留 `AssistantMessage.error_message` 的检查，因为模型调用失败、取消或适配层异常都会收敛到 assistant 错误消息中。
 
 如果你想立刻看到流式增量输出，而不是等运行结束后一次性读取最终结果，请继续阅读第 7 章“事件与流式输出”。
@@ -245,7 +245,7 @@ if __name__ == "__main__":
 
 - `model`
 - `stream_fn`
-- 视适配器能力决定是否需要显式设置 `system_prompt`
+- 按业务需要决定是否显式设置 `system_prompt`
 - 可选的生成参数，如 `temperature`
 
 其中最重要、也最容易被忽略的是 `stream_fn`。`Agent` 本身不会自行决定如何连接模型；如果没有配置 `stream_fn`，运行时会在实际执行时报错。因此，只要你打算真正跑通一次调用，就必须提供一个可用的 `stream_fn`，最常见的做法就是使用 `OpenAIChatCompletionsAdapter.stream_message`。
@@ -807,14 +807,14 @@ options = AgentOptions(
 
 | 字段 | 默认值 | 当前作用 |
 | --- | --- | --- |
-| `system_prompt` | `""` | 作为 `AgentContext.system_prompt` 保存在当前会话中；是否进入底层请求取决于适配器 |
+| `system_prompt` | `""` | 作为 `AgentContext.system_prompt` 保存在当前会话中；默认 OpenAI 适配器会把它写入请求首条 system message |
 | `model` | `ModelInfo()` | 标识当前模型身份与协议类型 |
 | `messages` | `[]` | 作为初始 transcript 注入 `Agent` |
 | `tools` | `[]` | 作为当前会话可用工具列表 |
 
 推荐理解方式：
 
-- `system_prompt` 是当前会话级系统提示，而不是每轮单独传入的参数；默认 OpenAI 适配器当前会保留它，但不会自动把它写进请求里的 system message。
+- `system_prompt` 是当前会话级系统提示，而不是每轮单独传入的参数；默认 OpenAI 适配器会保留它，并把它写进请求里的首条 system message。
 - `messages` 适合在恢复历史会话、做 continuation 测试或初始化带上下文的 Agent 时使用。
 - `tools` 注册的是“本 Agent 生命周期内可见的工具集合”。
 
@@ -2929,7 +2929,7 @@ await agent.continue_()  # 如果当前没有可继续边界，会直接抛错
 
 | 字段 | 类型 | 默认值 | 当前状态 | 说明 |
 | --- | --- | --- | --- | --- |
-| `system_prompt` | `str` | `""` | 已保存到上下文；是否进入请求取决于适配器 | 会话级系统提示 |
+| `system_prompt` | `str` | `""` | 已生效；默认 OpenAI 适配器会注入请求 | 会话级系统提示 |
 | `model` | `ModelInfo` | `ModelInfo()` | 已生效 | 模型身份与协议 |
 | `tools` | `list[AgentTool]` | `[]` | 已生效 | 当前可用工具集 |
 | `messages` | `list[AgentMessage]` | `[]` | 已生效 | 初始 transcript |

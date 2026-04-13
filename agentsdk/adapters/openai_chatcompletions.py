@@ -468,9 +468,13 @@ class OpenAIChatCompletionsAdapter:
         if api_key is None and options.get_api_key is not None:
             api_key = await _maybe_await(options.get_api_key(model.provider))
 
+        messages = [_message_to_openai_dict(message) for message in context.messages]
+        if context.system_prompt:
+            messages = [{"role": "system", "content": context.system_prompt}, *messages]
+
         request_options: dict[str, Any] = {
             "model": model.id,
-            "messages": [_message_to_openai_dict(message) for message in context.messages],
+            "messages": messages,
             "stream": stream,
         }
         if context.tools:

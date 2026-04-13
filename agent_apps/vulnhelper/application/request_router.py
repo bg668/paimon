@@ -18,7 +18,7 @@ class RoutedIntent(str, Enum):
 class RequestRouter:
     def route(self, session: VulnSession, text: str) -> RoutedIntent:
         normalized = text.strip().lower()
-        if normalized in {"重置", "重新开始", "restart", "reset"}:
+        if normalized in {"重置", "重新开始", "restart", "reset", "/new"}:
             return RoutedIntent.RESTART
         if session.state == SessionState.WAITING_FOR_CONFIRMATION:
             return RoutedIntent.CONFIRM if is_confirmation_text(text) else RoutedIntent.REFINE_PLAN

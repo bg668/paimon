@@ -52,6 +52,12 @@ class VulnHelperOrchestrator:
     def _thinking_metadata(**values: str | None) -> dict[str, str]:
         return {key: value for key, value in values.items() if value}
 
+    def _reset_agent_contexts(self) -> None:
+        for agent in (self._planner_agent, self._executor_agent, self._analyst_agent):
+            reset = getattr(agent, "reset", None)
+            if callable(reset):
+                reset()
+
     async def handle_text(self, *, session_id: str, text: str) -> UserTurnOutput:
         return await self.handle_turn(UserTurnInput(session_id=session_id, text=text))
 
@@ -60,6 +66,8 @@ class VulnHelperOrchestrator:
         intent = self._request_router.route(session, input.text)
 
         if intent == RoutedIntent.RESTART:
+            self._reset_agent_contexts()
+            self._query_cache.clear(input.session_id)
             session = self._session_manager.reset(input.session_id)
             return UserTurnOutput(session_id=input.session_id, state=session.state.value, markdown="会话已重置。", metadata={})
         if intent == RoutedIntent.NEW_QUERY:

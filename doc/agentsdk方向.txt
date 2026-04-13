@@ -1,0 +1,61 @@
+**方向 1**
+单 agent 的持久化 / 恢复 / 回放
+
+与 `refs` 的关系：
+- **顺着 refs 往前补成熟度**
+- `refs` 已有单 agent runtime 的核心骨架：`state`、`event`、`queue`、`waitForIdle`、`sessionId`、tool hooks，见 [agent.ts](D:/Work/01_processing/uu-work/refs/agent.ts:178) 和 [types.ts](D:/Work/01_processing/uu-work/refs/types.ts:248)
+- 但 `refs` 没有真正实现 snapshot、落盘、恢复、checkpoint resume
+
+建议做到的边界：
+- 保存 transcript、system prompt、model、队列、metadata、最近稳定边界
+- 支持从稳定边界恢复继续跑
+- 支持事件日志回放
+- 不做 token 级流中断恢复
+
+是否应进入 Python `agentsdk`：
+- **应该**
+- 这是最符合你“SDK 只负责单 agent 生命周期”的增强方向
+
+**方向 2**
+更强的 tool contract / artifact contract
+
+与 `refs` 的关系：
+- **tool contract 部分基本符合 refs**
+- `refs` 已有 `prepareArguments`、schema 校验、`beforeToolCall`、`afterToolCall`、`details`、tool update，见 [agent-loop.ts](D:/Work/01_processing/uu-work/refs/agent-loop.ts:345) 和 [types.ts](D:/Work/01_processing/uu-work/refs/types.ts:292)
+- **artifact contract 部分超出 refs 当前实现**
+- `refs` 没有独立 artifact 通道，最接近的是 `details` 和 `CustomAgentMessages`，见 [types.ts](D:/Work/01_processing/uu-work/refs/types.ts:229)
+
+建议做到的边界：
+- 先把 tool 输入输出契约做强
+- 明确 `content` 给模型、`details` 给应用
+- 如需 artifact，先做轻量字段，不要单独起大框架
+
+是否应进入 Python `agentsdk`：
+- **应该，但要克制**
+- 推荐先做“更强 tool contract”，artifact 只做最小补充
+
+**方向 3**
+SDK 内建 subagent / workflow / DAG 抽象
+
+与 `refs` 的关系：
+- **明显超出 refs 的能力边界**
+- `refs` 只有单 agent runtime，没有多 agent 编排抽象，核心入口仍是单个 `Agent` 和 loop，见 [agent.ts](D:/Work/01_processing/uu-work/refs/agent.ts:120) 和 [agent-loop.ts](D:/Work/01_processing/uu-work/refs/agent-loop.ts:158)
+
+建议做到的边界：
+- 不进 SDK
+- 最多只在 SDK 提供“更易编排的单 agent 部件能力”，比如稳定事件 id、snapshot、resume、tool result contract
+- DAG、依赖、通信、协同策略留给 app 层
+
+是否应进入 Python `agentsdk`：
+- **不应该**
+- 这会把 SDK 从 runtime kernel 推向 workflow framework，和你定的边界冲突
+
+**最终建议**
+
+如果目标是尽量贴近 `refs` 的演进方向，同时服务你现在的上层 app：
+
+1. 先做方向 1  
+2. 再做方向 2 的 tool contract 部分  
+3. 不做方向 3 进 SDK
+
+如果你愿意，我可以下一条直接把这三项整理成一份“Python agentsdk 近期路线图 v1”，按 `P0 / P1 / 不做` 列出来。

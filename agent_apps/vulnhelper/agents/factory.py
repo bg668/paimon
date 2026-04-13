@@ -37,6 +37,7 @@ class AgentFactory:
             stream_fn,
             model,
             self._config.planner_prompt_path,
+            role=self._config.planner_subagent.role,
             temperature=self._config.planner_temperature,
             max_tokens=self._config.planner_max_tokens,
         )
@@ -52,6 +53,7 @@ class AgentFactory:
             self._session_manager,
             self._query_tool,
             self._filter_tool,
+            role=self._config.executor_subagent.role,
             temperature=self._config.executor_temperature,
             max_tokens=self._config.executor_max_tokens,
         )
@@ -64,6 +66,7 @@ class AgentFactory:
             stream_fn,
             model,
             self._config.analyst_prompt_path,
+            role=self._config.analyst_subagent.role,
             temperature=self._config.analyst_temperature,
             max_tokens=self._config.analyst_max_tokens,
         )

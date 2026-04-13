@@ -7,6 +7,7 @@ from ..agentsdk import Agent, AgentOptions
 
 from ..config import read_text
 from .introspection import extract_assistant_thinking, extract_latest_assistant_text
+from .prompt_injection import build_system_prompt
 
 
 SECTION_RE = re.compile(r"\[(?P<section>[A-Z_]+)\]\s*(?P<body>.*?)(?=\n\[[A-Z_]+\]|\Z)", re.S)
@@ -32,6 +33,11 @@ class AnalystAgentRunner:
             return lambda: None
         return self._agent.subscribe(listener)
 
+    def reset(self) -> None:
+        self._last_thinking = None
+        if self._agent is not None:
+            self._agent.reset()
+
     async def analyze(self, analysis_brief: dict[str, object]) -> tuple[str, str]:
         if self._agent is None:
             self._last_thinking = None
@@ -49,12 +55,21 @@ class AnalystAgentRunner:
         return _fallback_analysis(analysis_brief)
 
 
-def build_analyst_agent(stream_fn, model, system_prompt_path, *, temperature: float = 0.2, max_tokens: int | None = None) -> AnalystAgentRunner:
+def build_analyst_agent(
+    stream_fn,
+    model,
+    system_prompt_path,
+    *,
+    role: str = "",
+    temperature: float = 0.2,
+    max_tokens: int | None = None,
+) -> AnalystAgentRunner:
     if stream_fn is None or model is None:
         return AnalystAgentRunner(None)
+    prompt_text = read_text(system_prompt_path)
     agent = Agent(
         AgentOptions(
-            system_prompt=read_text(system_prompt_path),
+            system_prompt=build_system_prompt(role, prompt_text),
             model=model,
             stream_fn=stream_fn,
             temperature=temperature,

@@ -11,6 +11,7 @@ from ..domain.models import QueryPlan
 from ..domain.normalization import normalize_package_name, normalize_vuln_id
 from ..domain.query_understanding import build_confirmation_text, parse_query_plan
 from .introspection import extract_assistant_thinking, extract_latest_assistant_text
+from .prompt_injection import build_system_prompt
 
 
 SECTION_RE = re.compile(r"\[(?P<section>[A-Z_]+)\]\s*(?P<body>.*?)(?=\n\[[A-Z_]+\]|\Z)", re.S)
@@ -49,6 +50,11 @@ class PlannerAgentRunner:
             return lambda: None
         return self._agent.subscribe(listener)
 
+    def reset(self) -> None:
+        self._last_thinking = None
+        if self._agent is not None:
+            self._agent.reset()
+
     async def plan_query(self, user_text: str) -> tuple[QueryPlan, str]:
         if self._agent is None:
             self._last_thinking = None
@@ -81,12 +87,21 @@ class PlannerAgentRunner:
         return _fallback_plan(user_text)
 
 
-def build_planner_agent(stream_fn, model, system_prompt_path, *, temperature: float = 0.1, max_tokens: int | None = None) -> PlannerAgentRunner:
+def build_planner_agent(
+    stream_fn,
+    model,
+    system_prompt_path,
+    *,
+    role: str = "",
+    temperature: float = 0.1,
+    max_tokens: int | None = None,
+) -> PlannerAgentRunner:
     if stream_fn is None or model is None:
         return PlannerAgentRunner(None)
+    prompt_text = read_text(system_prompt_path)
     agent = Agent(
         AgentOptions(
-            system_prompt=read_text(system_prompt_path),
+            system_prompt=build_system_prompt(role, prompt_text),
             model=model,
             stream_fn=stream_fn,
             temperature=temperature,

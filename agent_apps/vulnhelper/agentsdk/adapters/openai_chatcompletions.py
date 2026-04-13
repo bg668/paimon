@@ -6,9 +6,9 @@ from dataclasses import replace
 from inspect import isawaitable
 from typing import Any, AsyncIterator, Awaitable, Iterable, Mapping, Sequence
 
-from ..runtime.config import AgentLoopConfig
-from ..runtime.errors import OpenAIAdapterError
-from ..runtime.models import (
+from agentsdk.runtime.config import AgentLoopConfig
+from agentsdk.runtime.errors import OpenAIAdapterError
+from agentsdk.runtime.models import (
     AgentContext,
     AssistantMessage,
     AssistantMessageEvent,
@@ -28,7 +28,7 @@ from ..runtime.models import (
     UsageCost,
     utc_timestamp_ms,
 )
-from ..runtime.run_control import CancelToken
+from agentsdk.runtime.run_control import CancelToken
 
 
 def _maybe_get(source: Any, key: str, default: Any = None) -> Any:
@@ -468,9 +468,13 @@ class OpenAIChatCompletionsAdapter:
         if api_key is None and options.get_api_key is not None:
             api_key = await _maybe_await(options.get_api_key(model.provider))
 
+        messages = [_message_to_openai_dict(message) for message in context.messages]
+        if context.system_prompt:
+            messages = [{"role": "system", "content": context.system_prompt}, *messages]
+
         request_options: dict[str, Any] = {
             "model": model.id,
-            "messages": [_message_to_openai_dict(message) for message in context.messages],
+            "messages": messages,
             "stream": stream,
         }
         if context.tools:
