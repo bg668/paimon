@@ -2,6 +2,8 @@
 
 `paimonsdk` 是一个偏底层的 Python Agent Runtime SDK，用来构建可自定义的 agent loop。
 
+当前默认 OpenAI 接入入口是 `OpenAIAdapter`。它会根据 `ModelInfo.api` 自动选择 `chat.completions` 或 `responses` 协议实现；如果你需要显式绑定协议，也可以直接使用 `OpenAIChatCompletionsAdapter` 或 `OpenAIResponsesAdapter`。
+
 仓库采用标准的 Python `src` 布局，适合被其他项目直接安装和依赖：
 
 - `src/paimonsdk/`：正式发布的包代码
@@ -51,5 +53,10 @@ uv run python examples/chat_demo.py
 ```
 
 示例程序依赖 `python-dotenv`，请先安装 `examples` 可选依赖，并将 [examples/.env.example](examples/.env.example) 复制为 `examples/.env` 后填入 `OPENAI_API_KEY`。
+
+`examples/config.json` 中的 `model.api` 当前支持：
+
+- `chat.completions`
+- `responses`
 
 文档入口见 [docs/README.md](docs/README.md)。

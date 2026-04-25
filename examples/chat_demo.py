@@ -2,7 +2,7 @@
 Paimon SDK 简单聊天程序示例
 
 功能：
-- 使用 OpenAI Chat Completions API 进行对话
+- 使用 OpenAI `chat.completions` 或 `responses` API 进行对话
 - 支持流式输出（打字机效果）
 - 支持多轮对话（保留上下文）
 - 配置从 examples/config.json 读取（模型、base_url、system_prompt等）
@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 from paimonsdk import Agent, AgentOptions, ModelInfo, TextContent, AssistantMessage
-from paimonsdk.adapters.openai_chatcompletions import OpenAIChatCompletionsAdapter, OpenAIRequestConfig
+from paimonsdk.adapters import OpenAIAdapter, OpenAIRequestConfig
 
 
 def load_config():
@@ -106,7 +106,7 @@ async def main():
     )
 
     # 5. 创建适配器
-    adapter = OpenAIChatCompletionsAdapter(
+    adapter = OpenAIAdapter(
         client,
         request_config=OpenAIRequestConfig(
             temperature=config.get("temperature", 0.7),
